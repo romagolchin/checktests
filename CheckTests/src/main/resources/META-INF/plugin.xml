@@ -1,4 +1,4 @@
-<idea-plugin version="3">
+<idea-plugin>
     <id>com.dacatech.checktests</id>
     <name>Check Tests</name>
     <version>1.3</version>
@@ -9,8 +9,6 @@
         would like to run the tests.
     </description>
 
-    <change-notes>
-    </change-notes>
 
     <!-- please see http://confluence.jetbrains.net/display/IDEADEV/Build+Number+Ranges for description -->
     <idea-version since-build="107.105"/>
@@ -54,7 +52,6 @@
         <projectService serviceInterface="com.dacatech.checktests.TestClassDetector"
                         serviceImplementation="com.dacatech.checktests.TestClassDetectorImpl"/>
 
-        <projectService serviceInterface="com.dacatech.checktests.CheckTestsConfiguration"
-                        serviceImplementation="com.dacatech.checktests.CheckTestsConfiguration"/>
+        <projectService serviceImplementation="com.dacatech.checktests.CheckTestsConfiguration"/>
     </extensions>
 </idea-plugin>

@@ -1,15 +1,14 @@
 package com.dacatech.checktests;
 
-import java.util.Set;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import com.google.common.collect.Lists;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiClass;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.Set;
 
 /**
  * Created with IntelliJ IDEA. User: darata Date: 3/28/13 Time: 3:52 PM
@@ -55,9 +54,9 @@ public class CheckTestsSearchLevelActionGroup extends ActionGroup {
     }
 
     private static class CheckTestsSearchLevelApplier extends ToggleAction {
-        private Project project;
-        private int levelsToSearch;
-        private boolean performAction;
+        private final Project project;
+        private final int levelsToSearch;
+        private final boolean performAction;
 
         CheckTestsSearchLevelApplier(final String text, final Project project, final int levelsToSearch,
                 final boolean performAction) {

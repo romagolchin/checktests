@@ -24,16 +24,11 @@ public class PsiUtils {
             return null;
         }
         final int offset = editor.getCaretModel().getOffset();
-        final PsiElement psiElement = psiFile.findElementAt(offset);
-        return psiElement;
+        return psiFile.findElementAt(offset);
     }
 
     public static PsiClass getPsiClass(PsiElement psiElement) {
-        final PsiClass psiClass = PsiTreeUtil.getParentOfType(psiElement, PsiClass.class);
-        if (psiClass == null) {
-            return null;
-        }
-        return psiClass;
+        return PsiTreeUtil.getParentOfType(psiElement, PsiClass.class);
     }
 
     public static PsiClass[] getPsiClasses(PsiElement psiElement) {

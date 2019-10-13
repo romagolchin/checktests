@@ -1,14 +1,5 @@
 package com.dacatech.checktests;
 
-import java.awt.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import javax.swing.*;
-
-import org.jetbrains.annotations.Nullable;
-
 import com.google.common.collect.Lists;
 import com.intellij.CommonBundle;
 import com.intellij.openapi.actionSystem.ActionManager;
@@ -18,19 +9,23 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vcs.CheckinProjectPanel;
 import com.intellij.openapi.vcs.changes.CommitExecutor;
 import com.intellij.openapi.vcs.checkin.CheckinHandler;
 import com.intellij.openapi.vcs.ui.RefreshableOnComponent;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiClass;
 import com.intellij.ui.components.labels.LinkLabel;
-import com.intellij.ui.components.labels.LinkListener;
 import com.intellij.util.PairConsumer;
 import com.intellij.util.ui.UIUtil;
+import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Created with IntelliJ IDEA. User: darata Date: 3/8/13 Time: 3:08 PM
@@ -55,16 +50,13 @@ public class CheckTestsCheckinHandler extends CheckinHandler {
                 final JPanel panel = new JPanel(new BorderLayout(4, 0));
                 panel.add(checkBox, BorderLayout.WEST);
                 refreshEnable(checkBox);
-                final LinkLabel linkLabel = new LinkLabel("Configure", null);
-                linkLabel.setListener(new LinkListener() {
-                    @Override
-                    public void linkSelected(LinkLabel aSource, Object aLinkData) {
-                        final DefaultActionGroup group = CheckTestsSearchLevelActionGroup
-                                .createPopupActionGroup(myProject, false);
-                        final ActionPopupMenu popupMenu = ActionManager.getInstance().createActionPopupMenu(
-                                "CheckTestToolbar", group);
-                        popupMenu.getComponent().show(linkLabel, 0, linkLabel.getHeight());
-                    }
+                final LinkLabel<Object> linkLabel = new LinkLabel<>("Configure", null);
+                linkLabel.setListener((aSource, aLinkData) -> {
+                    final DefaultActionGroup group = CheckTestsSearchLevelActionGroup
+                            .createPopupActionGroup(myProject, false);
+                    final ActionPopupMenu popupMenu = ActionManager.getInstance().createActionPopupMenu(
+                            "CheckTestToolbar", group);
+                    popupMenu.getComponent().show(linkLabel, 0, linkLabel.getHeight());
                 }, null);
                 panel.add(linkLabel, BorderLayout.CENTER);
                 return panel;
@@ -109,7 +101,7 @@ public class CheckTestsCheckinHandler extends CheckinHandler {
                                 myProject,
                                 "Check for Tests can't be performed while IntelliJ IDEA updates the indices in background.\n"
                                         + "You can commit the changes without running inspections, or you can wait until indices are built.",
-                                "Check for Tests is not possible right now", "&Wait", "&Commit", null) == DialogWrapper.OK_EXIT_CODE) {
+                                "Check for Tests is not possible right now", "&Wait", "&Commit", null) == Messages.OK) {
                     return ReturnResult.CANCEL;
                 }
                 return ReturnResult.COMMIT;
@@ -117,7 +109,7 @@ public class CheckTestsCheckinHandler extends CheckinHandler {
 
             try {
                 final Set<PsiClass> testClasses = TestClassDetector.getInstance(myProject).findTestClasses(
-                        new ArrayList<VirtualFile>(myCheckinPanel.getVirtualFiles()),
+                        new ArrayList<>(myCheckinPanel.getVirtualFiles()),
                         getSettings().LEVELS_TO_CHECK_FOR_TESTS);
                 if (!testClasses.isEmpty()) {
                     return runTests(testClasses, executor);
@@ -130,7 +122,7 @@ public class CheckTestsCheckinHandler extends CheckinHandler {
                 LOG.error(e);
                 if (Messages.showOkCancelDialog(myProject, "Check for Tests failed with exception: "
                         + e.getClass().getName() + ": " + e.getMessage(), "Check for Tests failed", "&Commit",
-                        "&Cancel", null) == DialogWrapper.OK_EXIT_CODE) {
+                        "&Cancel", null) == Messages.OK) {
                     return ReturnResult.COMMIT;
                 }
                 return ReturnResult.CANCEL;
@@ -146,7 +138,7 @@ public class CheckTestsCheckinHandler extends CheckinHandler {
             commitButtonText = commitButtonText.substring(0, commitButtonText.length() - 3);
         }
 
-        final List<String> lines = new ArrayList<String>();
+        final List<String> lines = new ArrayList<>();
         lines.add("Found " + testClasses.size() + " tests, would you like to run them?");
         for (final PsiClass testClass : testClasses) {
             lines.add(testClass.getName());

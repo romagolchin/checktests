@@ -1,11 +1,5 @@
 package com.dacatech.checktests;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import javax.swing.*;
-
 import com.google.common.collect.Lists;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -20,6 +14,11 @@ import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiClass;
 import com.intellij.ui.ScrollPaneFactory;
+
+import javax.swing.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Created with IntelliJ IDEA. User: darata Date: 2/14/13 Time: 12:30 PM
@@ -92,18 +91,15 @@ public class CheckTestAction extends AnAction {
         textArea.setWrapStyleWord(true);
         textArea.setLineWrap(true);
         if (testClasses.size() > 0) {
-            final List<String> lines = new ArrayList<String>();
+            final List<String> lines = new ArrayList<>();
             lines.add("Found " + testClasses.size() + " tests, would you like to run them?");
             for (final PsiClass testClass : testClasses) {
                 lines.add(testClass.getName());
             }
             textArea.setText(StringUtil.join(lines, "\n"));
-            final Runnable runTestsRunnable = new Runnable() {
-                @Override
-                public void run() {
-                    dialogBuilder.getDialogWrapper().close(DialogWrapper.OK_EXIT_CODE);
-                    TestRunner.runTest(project, testClasses);
-                }
+            final Runnable runTestsRunnable = () -> {
+                dialogBuilder.getDialogWrapper().close(DialogWrapper.OK_EXIT_CODE);
+                TestRunner.runTest(project, testClasses);
             };
             dialogBuilder.setOkOperation(runTestsRunnable);
         } else {

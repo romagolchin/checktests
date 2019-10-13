@@ -1,8 +1,5 @@
 package com.dacatech.checktests;
 
-import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
-
 /**
  * Created with IntelliJ IDEA.
  * User: darata

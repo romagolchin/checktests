@@ -1,19 +1,17 @@
 package com.dacatech.checktests;
 
-import java.util.List;
-
 import com.intellij.execution.*;
 import com.intellij.execution.configurations.ConfigurationType;
 import com.intellij.execution.executors.DefaultRunExecutor;
 import com.intellij.execution.impl.RunnerAndConfigurationSettingsImpl;
 import com.intellij.execution.junit.JUnitConfiguration;
 import com.intellij.execution.testframework.TestSearchScope;
-import com.intellij.execution.ui.RunContentDescriptor;
 import com.intellij.openapi.compiler.CompilerManager;
-import com.intellij.openapi.extensions.Extensions;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiClass;
+
+import java.util.List;
 
 /**
  * Created with IntelliJ IDEA. User: darata Date: 3/8/13 Time: 9:24 AM
@@ -37,7 +35,7 @@ public class TestRunner {
         }
 
         Executor myExecutor = null;
-        final Executor[] executors = Extensions.getExtensions(Executor.EXECUTOR_EXTENSION_NAME);
+        final Executor[] executors = Executor.EXECUTOR_EXTENSION_NAME.getExtensions();
         for (final Executor executor : executors) {
             if (executor instanceof DefaultRunExecutor) {
                 myExecutor = executor;
@@ -47,8 +45,7 @@ public class TestRunner {
         ExecutionTarget target = ExecutionTargetManager.getActiveTarget(project);
 
         if (myExecutor != null) {
-            ExecutionManager.getInstance(project).restartRunProfile(project, myExecutor, target, configuration,
-                    (RunContentDescriptor) null);
+            ExecutionManager.getInstance(project).restartRunProfile(project, myExecutor, target, configuration, null);
 
             RunManagerEx.getInstanceEx(project).addConfiguration(configuration, false);
             instanceEx.setSelectedConfiguration(configuration);
@@ -59,7 +56,7 @@ public class TestRunner {
             final List<PsiClass> testClasses) {
         final ConfigurationType type = getConfigurationType();
         final RunnerAndConfigurationSettingsImpl runnerAndConfigurationSettings = (RunnerAndConfigurationSettingsImpl) runManager
-                .createRunConfiguration("CheckTests", type.getConfigurationFactories()[0]);
+                .createConfiguration("CheckTests", type.getConfigurationFactories()[0]);
         final JUnitConfiguration conf = (JUnitConfiguration) runnerAndConfigurationSettings.getConfiguration();
         conf.bePatternConfiguration(testClasses, null);
         final JUnitConfiguration.Data data = conf.getPersistentData();
@@ -68,7 +65,7 @@ public class TestRunner {
     }
 
     private static ConfigurationType getConfigurationType() {
-        ConfigurationType[] types = Extensions.getExtensions(ConfigurationType.CONFIGURATION_TYPE_EP);
+        ConfigurationType[] types = ConfigurationType.CONFIGURATION_TYPE_EP.getExtensions();
         for (ConfigurationType type : types) {
             if (type.getDisplayName().equals("JUnit")) {
                 return type;

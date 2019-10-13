@@ -1,31 +1,21 @@
 package com.dacatech.checktests;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.intellij.execution.junit.JUnitUtil;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiManager;
-import com.intellij.psi.PsiReference;
-import com.intellij.psi.search.GlobalSearchScope;
-import com.intellij.psi.search.searches.ReferencesSearch;
-import org.jetbrains.annotations.Nullable;
-
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiElement;
-import com.intellij.vcsUtil.Rethrow;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.*;
+import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.search.searches.ReferencesSearch;
+import com.intellij.util.ExceptionUtil;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.*;
 
 /**
  * Created with IntelliJ IDEA. User: darata Date: 3/8/13 Time: 3:41 PM
@@ -42,26 +32,23 @@ public class TestClassDetectorImpl extends TestClassDetector {
     @Override
     public Set<PsiClass> findTestClasses(final List<VirtualFile> virtualFiles, final int levelsToSearch) throws ProcessCanceledException {
         final Set<PsiClass> result = Sets.newHashSet();
-        boolean completed = ProgressManager.getInstance().runProcessWithProgressSynchronously(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    @Nullable
-                    final ProgressIndicator progress = ProgressManager.getInstance().getProgressIndicator();
-                    progress.setText("Processing");
-                    progress.setIndeterminate(true);
-                    final LinkedList<PsiElement> referenceSearchElements = Lists.newLinkedList();
-                    for(final VirtualFile virtualFile : virtualFiles) {
-                        if (progress.isCanceled()) {
-                            throw new ProcessCanceledException();
-                        }
-                        referenceSearchElements.addAll(getReferenceSearchElements(virtualFile));
+        boolean completed = ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
+            try {
+                @Nullable
+                final ProgressIndicator progress = ProgressManager.getInstance().getProgressIndicator();
+                progress.setText("Processing");
+                progress.setIndeterminate(true);
+                final LinkedList<PsiElement> referenceSearchElements = Lists.newLinkedList();
+                for(final VirtualFile virtualFile : virtualFiles) {
+                    if (progress.isCanceled()) {
+                        throw new ProcessCanceledException();
                     }
-                    result.addAll(findTestClasses(referenceSearchElements, levelsToSearch));
-                } catch (Exception e) {
-                    LOG.error(e);
-                    myException = e;
+                    referenceSearchElements.addAll(getReferenceSearchElements(virtualFile));
                 }
+                result.addAll(findTestClasses(referenceSearchElements, levelsToSearch));
+            } catch (Exception e) {
+                LOG.error(e);
+                myException = e;
             }
         }, "Checking for Tests", true, myProject);
 
@@ -69,7 +56,7 @@ public class TestClassDetectorImpl extends TestClassDetector {
             throw new ProcessCanceledException();
         }
         if (myException != null) {
-            Rethrow.reThrowRuntime(myException);
+            ExceptionUtil.rethrowUnchecked(myException);
         }
 
         return result;
@@ -91,7 +78,7 @@ public class TestClassDetectorImpl extends TestClassDetector {
 
     // VisibleForTesting
     Set<PsiClass> findTestClasses(final LinkedList<PsiElement> psiElementsToSearch, final int levelsToSearch) {
-        final Set<PsiClass> testClasses = new HashSet<PsiClass>();
+        final Set<PsiClass> testClasses = new HashSet<>();
         int currentSearchLevel = 1;
         int lastIndexForCurrentSearchLevel = psiElementsToSearch.size() - 1;
         for(int idx = 0; idx < psiElementsToSearch.size(); idx++) {
@@ -103,7 +90,7 @@ public class TestClassDetectorImpl extends TestClassDetector {
                 break;
             }
             final PsiElement psiElementToSearch = psiElementsToSearch.get(idx);
-            final List<PsiReference> psiReferences = new ArrayList<PsiReference>();
+            final List<PsiReference> psiReferences = new ArrayList<>();
 
             final GlobalSearchScope projectScope = GlobalSearchScope.projectScope(psiElementToSearch.getProject());
             final PsiReference[] references = ReferencesSearch.search(psiElementToSearch, projectScope, false).toArray(
