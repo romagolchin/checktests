@@ -6,10 +6,9 @@ import com.intellij.execution.executors.DefaultRunExecutor;
 import com.intellij.execution.impl.RunnerAndConfigurationSettingsImpl;
 import com.intellij.execution.junit.JUnitConfiguration;
 import com.intellij.execution.testframework.TestSearchScope;
-import com.intellij.openapi.compiler.CompilerManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiClass;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -18,42 +17,23 @@ import java.util.List;
  */
 public class TestRunner {
     public static void runTest(final Project project, final List<PsiClass> testClasses) {
-        // first compile our test classes
-        final CompilerManager compilerManager = CompilerManager.getInstance(project);
-        final VirtualFile[] files = new VirtualFile[testClasses.size()];
-        int idx = 0;
-        for (final PsiClass testClass : testClasses) {
-            files[idx] = testClass.getContainingFile().getVirtualFile();
-            idx++;
-        }
-        compilerManager.compile(files, null);
-
         final RunManagerEx instanceEx = RunManagerEx.getInstanceEx(project);
         final RunnerAndConfigurationSettings configuration = getConfiguration(instanceEx, testClasses);
-        if (configuration == null) {
-            return;
-        }
 
-        Executor myExecutor = null;
-        final Executor[] executors = Executor.EXECUTOR_EXTENSION_NAME.getExtensions();
-        for (final Executor executor : executors) {
-            if (executor instanceof DefaultRunExecutor) {
-                myExecutor = executor;
-            }
-        }
+        Executor executor = DefaultRunExecutor.getRunExecutorInstance();
 
-        ExecutionTarget target = ExecutionTargetManager.getActiveTarget(project);
-
-        if (myExecutor != null) {
-            ExecutionManager.getInstance(project).restartRunProfile(project, myExecutor, target, configuration, null);
+        if (executor != null) {
+            ExecutionTarget target = ExecutionTargetManager.getActiveTarget(project);
+            ExecutionManager.getInstance(project).restartRunProfile(project, executor, target, configuration, null);
 
             RunManagerEx.getInstanceEx(project).addConfiguration(configuration, false);
             instanceEx.setSelectedConfiguration(configuration);
         }
     }
 
+    @NotNull
     private static RunnerAndConfigurationSettings getConfiguration(final RunManager runManager,
-            final List<PsiClass> testClasses) {
+                                                                   final List<PsiClass> testClasses) {
         final ConfigurationType type = getConfigurationType();
         final RunnerAndConfigurationSettingsImpl runnerAndConfigurationSettings = (RunnerAndConfigurationSettingsImpl) runManager
                 .createConfiguration("CheckTests", type.getConfigurationFactories()[0]);
