@@ -3,6 +3,7 @@ package com.dacatech.checktests;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.intellij.execution.junit.JUnitUtil;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -13,6 +14,7 @@ import com.intellij.psi.*;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.search.searches.ReferencesSearch;
 import com.intellij.util.ExceptionUtil;
+import com.intellij.util.concurrency.AppExecutorUtil;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -32,29 +34,24 @@ public class TestClassDetectorImpl extends TestClassDetector {
     @Override
     public Set<PsiClass> findTestClasses(final List<VirtualFile> virtualFiles, final int levelsToSearch) throws ProcessCanceledException {
         final Set<PsiClass> result = Sets.newHashSet();
-        boolean completed = ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
-            try {
-                @Nullable
-                final ProgressIndicator progress = ProgressManager.getInstance().getProgressIndicator();
-                progress.setText("Processing");
+        ReadAction.nonBlocking(() -> {
+            @Nullable final ProgressIndicator progress = ProgressManager.getInstance().getProgressIndicator();
+            if (progress != null) {
+                progress.setText("Checking for Tests...");
                 progress.setIndeterminate(true);
-                final LinkedList<PsiElement> referenceSearchElements = Lists.newLinkedList();
-                for(final VirtualFile virtualFile : virtualFiles) {
-                    if (progress.isCanceled()) {
-                        throw new ProcessCanceledException();
-                    }
-                    referenceSearchElements.addAll(getReferenceSearchElements(virtualFile));
-                }
-                result.addAll(findTestClasses(referenceSearchElements, levelsToSearch));
-            } catch (Exception e) {
-                LOG.error(e);
-                myException = e;
             }
-        }, "Checking for Tests", true, myProject);
+            final LinkedList<PsiElement> referenceSearchElements = Lists.newLinkedList();
+            for (final VirtualFile virtualFile : virtualFiles) {
+                if (progress != null && progress.isCanceled()) {
+                    throw new ProcessCanceledException();
+                }
+                referenceSearchElements.addAll(getReferenceSearchElements(virtualFile));
+            }
+            result.addAll(findTestClasses(referenceSearchElements, levelsToSearch));
+        })
+                .inSmartMode(myProject)
+                .submit(AppExecutorUtil.getAppExecutorService());
 
-        if (!completed) {
-            throw new ProcessCanceledException();
-        }
         if (myException != null) {
             ExceptionUtil.rethrowUnchecked(myException);
         }
@@ -64,10 +61,10 @@ public class TestClassDetectorImpl extends TestClassDetector {
 
     Set<PsiElement> getReferenceSearchElements(final VirtualFile virtualFile) {
         final Set<PsiElement> elements = Sets.newHashSet();
-        if(virtualFile != null) {
+        if (virtualFile != null) {
             final PsiFile psiFile = PsiManager.getInstance(myProject).findFile(virtualFile);
             final PsiClass[] psiClasses = PsiUtils.getPsiClasses(psiFile);
-            if(psiClasses != null) {
+            if (psiClasses != null) {
                 elements.addAll(Arrays.asList(psiClasses));
             } else {
                 elements.add(psiFile);
@@ -81,12 +78,12 @@ public class TestClassDetectorImpl extends TestClassDetector {
         final Set<PsiClass> testClasses = new HashSet<>();
         int currentSearchLevel = 1;
         int lastIndexForCurrentSearchLevel = psiElementsToSearch.size() - 1;
-        for(int idx = 0; idx < psiElementsToSearch.size(); idx++) {
-            if(idx > lastIndexForCurrentSearchLevel) {
+        for (int idx = 0; idx < psiElementsToSearch.size(); idx++) {
+            if (idx > lastIndexForCurrentSearchLevel) {
                 currentSearchLevel++;
                 lastIndexForCurrentSearchLevel = psiElementsToSearch.size() - 1;
             }
-            if(currentSearchLevel > levelsToSearch && levelsToSearch != 0) {
+            if (currentSearchLevel > levelsToSearch && levelsToSearch != 0) {
                 break;
             }
             final PsiElement psiElementToSearch = psiElementsToSearch.get(idx);
@@ -101,15 +98,15 @@ public class TestClassDetectorImpl extends TestClassDetector {
                 final PsiElement referenceElement = psiReference.getElement();
                 final PsiClass referencePsiClass = PsiUtils.getPsiClass(referenceElement);
                 if (referencePsiClass != null) {
-                    if(!psiElementsToSearch.contains(referencePsiClass)) {
+                    if (!psiElementsToSearch.contains(referencePsiClass)) {
                         psiElementsToSearch.addLast(referencePsiClass);
                     }
-                    if(isTestClass(referencePsiClass)) {
+                    if (isTestClass(referencePsiClass)) {
                         testClasses.add(referencePsiClass);
                     }
                 } else {
                     final PsiFile psiFile = referenceElement.getContainingFile();
-                    if(!psiElementsToSearch.contains(psiFile)) {
+                    if (!psiElementsToSearch.contains(psiFile)) {
                         psiElementsToSearch.addLast(psiFile);
                     }
                 }
@@ -122,8 +119,7 @@ public class TestClassDetectorImpl extends TestClassDetector {
      * Will add the file psiFile to the testClassFile List. if a PsiFile with the same name already exists then it just
      * returns
      *
-     * @param newPsiClass
-     *            the class to add
+     * @param newPsiClass the class to add
      */
     private boolean isTestClass(final PsiClass newPsiClass) {
         return JUnitUtil.isTestClass(newPsiClass);
